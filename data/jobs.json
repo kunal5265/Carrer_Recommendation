@@ -1,0 +1,122 @@
+[
+  {
+    "id": "job-01",
+    "title": "Junior Data Scientist",
+    "company": "Nimbus Analytics",
+    "location": "Remote",
+    "description": "Entry-level data scientist role. You will clean and analyze large datasets, build predictive models, and communicate insights to stakeholders. Comfort with statistics, experiment design, and machine learning fundamentals is essential.",
+    "required_skills": ["Python", "Pandas", "NumPy", "Scikit-learn", "Statistics", "Data Visualization", "SQL"]
+  },
+  {
+    "id": "job-02",
+    "title": "NLP Engineer",
+    "company": "Lexicon Labs",
+    "location": "Bengaluru, India",
+    "description": "Build natural language processing pipelines: text classification, named entity recognition, and semantic search. Experience with transformer models, embeddings, and large language models is highly valued.",
+    "required_skills": ["Python", "NLP", "spaCy", "Transformers", "PyTorch", "Sentence Embeddings", "Docker"]
+  },
+  {
+    "id": "job-03",
+    "title": "Machine Learning Engineer",
+    "company": "Vectorworks AI",
+    "location": "Hybrid - Pune",
+    "description": "Design, train and deploy machine learning models at scale. Own the full MLOps lifecycle from experimentation to serving, including model monitoring and retraining pipelines.",
+    "required_skills": ["Python", "Scikit-learn", "Deep Learning", "PyTorch", "MLOps", "Docker", "Kubernetes", "AWS"]
+  },
+  {
+    "id": "job-04",
+    "title": "Data Analyst",
+    "company": "BrightRetail",
+    "location": "On-site - Mumbai",
+    "description": "Turn raw business data into dashboards and actionable recommendations. Strong SQL, Excel and visualization skills, plus the ability to explain trends to non-technical teams.",
+    "required_skills": ["SQL", "Excel", "Data Visualization", "Python", "Pandas", "Statistics", "Dashboarding"]
+  },
+  {
+    "id": "job-05",
+    "title": "Frontend Developer",
+    "company": "Pixelforge",
+    "location": "Remote",
+    "description": "Develop responsive, accessible web interfaces with React. You will own component libraries, optimize performance, and collaborate closely with designers and backend engineers.",
+    "required_skills": ["JavaScript", "React", "HTML", "CSS", "TypeScript", "Git", "REST APIs"]
+  },
+  {
+    "id": "job-06",
+    "title": "Full-Stack Engineer",
+    "company": "Orbit Software",
+    "location": "Hyderabad, India",
+    "description": "Build end-to-end features across a modern web stack. Work with React on the client, Node or Python services on the API layer, and cloud deployment tooling.",
+    "required_skills": ["JavaScript", "React", "Node.js", "Python", "REST APIs", "SQL", "Git", "AWS"]
+  },
+  {
+    "id": "job-07",
+    "title": "Backend Engineer",
+    "company": "Corebank Digital",
+    "location": "Chennai, India",
+    "description": "Design scalable APIs and microservices handling high transaction volumes. Strong grasp of databases, caching, concurrency and system design required.",
+    "required_skills": ["Python", "Java", "REST APIs", "SQL", "System Design", "Docker", "Redis", "Git"]
+  },
+  {
+    "id": "job-08",
+    "title": "Data Engineer",
+    "company": "Streamline Data Co.",
+    "location": "Remote",
+    "description": "Build and maintain batch and streaming data pipelines. Model data warehouses, ensure data quality, and enable analytics teams with reliable datasets.",
+    "required_skills": ["Python", "SQL", "Spark", "Airflow", "Data Modeling", "AWS", "Docker", "Git"]
+  },
+  {
+    "id": "job-09",
+    "title": "AI Research Intern",
+    "company": "DeepMind-style Lab (University)",
+    "location": "On-site",
+    "description": "Support research on generative models and retrieval-augmented systems. Read papers, reproduce baselines, run experiments, and prototype evaluation harnesses.",
+    "required_skills": ["Python", "Deep Learning", "PyTorch", "Transformers", "Research", "Statistics", "Git"]
+  },
+  {
+    "id": "job-10",
+    "title": "Business Intelligence Analyst",
+    "company": "MetricFlow",
+    "location": "Hybrid - Delhi",
+    "description": "Own reporting and KPI tracking for product and growth teams. Build semantic layers, write complex SQL, and present insights clearly to leadership.",
+    "required_skills": ["SQL", "Data Visualization", "Dashboarding", "Excel", "Statistics", "Python", "Communication"]
+  },
+  {
+    "id": "job-11",
+    "title": "Computer Vision Engineer",
+    "company": "Sightline Robotics",
+    "location": "Bengaluru, India",
+    "description": "Develop image and video understanding models for industrial inspection. Experience with CNNs, detection and segmentation frameworks, and model optimization.",
+    "required_skills": ["Python", "Deep Learning", "PyTorch", "OpenCV", "Computer Vision", "Docker", "MLOps"]
+  },
+  {
+    "id": "job-12",
+    "title": "MLOps Engineer",
+    "company": "Deploywise",
+    "location": "Remote",
+    "description": "Own CI/CD for machine learning: feature stores, model registries, automated evaluation, canary releases and monitoring in Kubernetes environments.",
+    "required_skills": ["Python", "MLOps", "Docker", "Kubernetes", "AWS", "CI/CD", "Scikit-learn", "System Design"]
+  },
+  {
+    "id": "job-13",
+    "title": "Product Analyst",
+    "company": "Loop Mobility",
+    "location": "On-site - Gurugram",
+    "description": "Analyze user funnels and run A/B tests to guide product decisions. Partner with PMs and engineers to define metrics and measure impact.",
+    "required_skills": ["SQL", "Python", "Statistics", "Data Visualization", "A/B Testing", "Excel", "Communication"]
+  },
+  {
+    "id": "job-14",
+    "title": "Cloud Engineer",
+    "company": "Stratos Cloud",
+    "location": "Hybrid - Pune",
+    "description": "Provision and automate cloud infrastructure, design reliable architectures, and improve cost and security posture across AWS environments.",
+    "required_skills": ["AWS", "Docker", "Kubernetes", "Terraform", "CI/CD", "Linux", "Python", "System Design"]
+  },
+  {
+    "id": "job-15",
+    "title": "Conversational AI Engineer",
+    "company": "Chatterbox",
+    "location": "Remote",
+    "description": "Design and ship LLM-powered assistants: prompt engineering, retrieval-augmented generation, evaluation, guardrails and tool calling integrations.",
+    "required_skills": ["Python", "NLP", "Transformers", "Sentence Embeddings", "LLM APIs", "REST APIs", "Docker", "Communication"]
+  }
+]

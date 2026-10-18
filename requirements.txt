@@ -1,0 +1,6 @@
+pypdf>=4.0
+spacy>=3.7
+sentence-transformers>=2.6
+streamlit>=1.41
+fpdf2>=2.7
+numpy>=1.24
