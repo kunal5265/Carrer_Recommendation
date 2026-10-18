@@ -17,3 +17,6 @@ venv/
 
 # Local logs
 *.log
+
+# Archives
+*.zip

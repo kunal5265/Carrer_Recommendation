@@ -63,8 +63,7 @@ missing skills — then orders them into an actionable **career path**.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
+pip install -r requirements.txt   # includes the en_core_web_sm model wheel
 
 python sample/make_sample_resume.py   # create the demo resume
 streamlit run app.py
