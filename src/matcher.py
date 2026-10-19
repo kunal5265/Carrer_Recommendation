@@ -1,8 +1,10 @@
 """Semantic job matching and skill-gap course recommendation.
 
 Pipeline:
-1. Embed the candidate's resume profile and every job description with a
-   sentence-transformer (all-MiniLM-L6-v2) and compute cosine similarity.
+1. Embed the candidate's resume profile and every job description with the
+   all-MiniLM-L6-v2 sentence model (ONNX Runtime - no PyTorch) and compute
+   cosine similarity. Loading is bounded by a timeout and degrades to a
+   lexical fallback, so the app never hangs on a slow model download.
 2. Blend the semantic score with an explicit skill-coverage score derived
    from extracted resume skills vs. the job's required skills.
 3. For the best-matching jobs, diff required vs. held skills to get the
@@ -14,13 +16,22 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import threading
+import time
 from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
 
+# Must be set before huggingface_hub is imported so a stalled download
+# raises instead of blocking the script forever.
+os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "60")
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-MODEL_NAME = "all-MiniLM-L6-v2"
+EMBED_MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
+# How long a run may wait for the embedding model before falling back.
+EMBED_LOAD_TIMEOUT_S = float(os.environ.get("EMBED_LOAD_TIMEOUT_S", "180"))
 
 # Weights for the final match score.
 SEMANTIC_WEIGHT = 0.5
@@ -49,19 +60,65 @@ def load_courses() -> tuple[dict, ...]:
 # Embeddings
 # --------------------------------------------------------------------------- #
 _embedder = None
-_embedder_failed = False
+_embedder_error: str | None = None
+_embedder_state = "idle"  # idle -> loading -> ready | failed
+_embedder_thread: threading.Thread | None = None
+_embedder_lock = threading.Lock()
 
 
-def _get_embedder():
-    """Lazy-load the sentence-transformer (first call downloads the model)."""
-    global _embedder, _embedder_failed
-    if _embedder is None and not _embedder_failed:
-        try:
-            from sentence_transformers import SentenceTransformer
+def _load_embedder_blocking():
+    """Import fastembed and construct the ONNX model (downloads on first use)."""
+    from fastembed import TextEmbedding
 
-            _embedder = SentenceTransformer(MODEL_NAME)
-        except Exception:
-            _embedder_failed = True
+    return TextEmbedding(model_name=EMBED_MODEL_ID)
+
+
+def _embedder_worker() -> None:
+    global _embedder, _embedder_error, _embedder_state
+    started = time.monotonic()
+    try:
+        model = _load_embedder_blocking()
+    except Exception as exc:  # noqa: BLE001 - degrade, never crash the app
+        with _embedder_lock:
+            _embedder_error = f"{type(exc).__name__}: {exc}"
+            _embedder_state = "failed"
+        print(
+            f"[embed] model load FAILED after {time.monotonic() - started:.1f}s: "
+            f"{_embedder_error}",
+            flush=True,
+        )
+        return
+    with _embedder_lock:
+        _embedder = model
+        _embedder_state = "ready"
+    print(f"[embed] {EMBED_MODEL_ID} ready in {time.monotonic() - started:.1f}s", flush=True)
+
+
+def embedder_status() -> str:
+    """One of 'idle', 'loading', 'ready', 'failed' (for UI/log diagnostics)."""
+    return _embedder_state
+
+
+def _get_embedder(timeout: float = EMBED_LOAD_TIMEOUT_S):
+    """Return the ONNX embedder, starting its one-time background load.
+
+    Blocks at most ``timeout`` seconds waiting for the model. Returns ``None``
+    when it is not ready yet (still downloading, timed out, or failed) so
+    callers can fall back to the lexical embedder instead of hanging.
+    """
+    global _embedder_thread, _embedder_state
+    with _embedder_lock:
+        if _embedder_state == "idle":
+            _embedder_state = "loading"
+            _embedder_thread = threading.Thread(
+                target=_embedder_worker, daemon=True, name="embed-model-load"
+            )
+            _embedder_thread.start()
+        thread = _embedder_thread
+    if _embedder is not None:
+        return _embedder
+    if thread is not None and timeout > 0:
+        thread.join(timeout)
     return _embedder
 
 
@@ -89,12 +146,23 @@ def _fallback_embed(texts: list[str]) -> np.ndarray:
 
 
 def embed_texts(texts: list[str]) -> np.ndarray:
-    """Return L2-normalised embeddings, shape (len(texts), dim)."""
+    """Return L2-normalised embeddings, shape (len(texts), dim).
+
+    Uses the ONNX sentence model when it is ready; otherwise falls back to
+    the in-process lexical embedder so a run always completes.
+    """
     model = _get_embedder()
     if model is None:
+        print(
+            f"[embed] embedding model not ready (status={embedder_status()}) "
+            "-> using lexical fallback for this run",
+            flush=True,
+        )
         return _fallback_embed(texts)
-    embeddings = model.encode(texts, normalize_embeddings=True)
-    return np.asarray(embeddings, dtype=np.float32)
+    embeddings = np.asarray(list(model.embed(texts)), dtype=np.float32)
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+    norms[norms == 0] = 1.0
+    return (embeddings / norms).astype(np.float32)
 
 
 # --------------------------------------------------------------------------- #

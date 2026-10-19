@@ -5,11 +5,17 @@ Run with:  streamlit run app.py
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import streamlit as st
 
-from src.matcher import build_career_path, match_jobs, recommend_courses
+from src.matcher import (
+    build_career_path,
+    embedder_status,
+    match_jobs,
+    recommend_courses,
+)
 from src.resume_parser import extract_text_from_pdf
 from src.skill_extractor import extract_skills, skills_as_names
 
@@ -25,11 +31,20 @@ st.set_page_config(
 @st.cache_data(show_spinner=False)
 def analyze(pdf_bytes: bytes) -> dict:
     """Full pipeline: PDF -> text -> skills -> job matches -> career path."""
+    t0 = time.perf_counter()
     text = extract_text_from_pdf(pdf_bytes)
     skills = extract_skills(text)
     skill_names = skills_as_names(skills)
+    t1 = time.perf_counter()
     results = match_jobs(text, skill_names)
     path = build_career_path(results)
+    t2 = time.perf_counter()
+    print(
+        f"[analyze] parse+skills {t1 - t0:.2f}s | match+path {t2 - t1:.2f}s "
+        f"| embedder={embedder_status()} | skills={len(skill_names)} "
+        f"jobs={len(results)}",
+        flush=True,
+    )
     return {
         "text": text,
         "skills": skills,
@@ -50,8 +65,8 @@ with st.sidebar:
 
 1. **Parse** - extracts text from your resume PDF
 2. **NLP (spaCy)** - finds your skills in unstructured text
-3. **Semantic matching** - sentence-transformers embeddings rank
-   job postings by fit
+3. **Semantic matching** - the all-MiniLM-L6-v2 sentence model
+   (ONNX Runtime, CPU) ranks job postings by fit
 4. **Skill-gap analysis** - diffs your skills vs. each job
 5. **Recommendations** - picks courses that close the most
    important gaps and orders them into a learning path
@@ -83,6 +98,20 @@ try:
 except Exception as exc:  # surface parse/model errors nicely
     st.error(f"Could not analyze this resume: {exc}")
     st.stop()
+
+_status = embedder_status()
+if _status == "failed":
+    st.warning(
+        "The semantic embedding model could not be downloaded, so this run "
+        "used the built-in lexical ranker instead. The app keeps working; "
+        "scores may be less precise."
+    )
+elif _status != "ready":
+    st.info(
+        "The semantic embedding model is still downloading in the background. "
+        "This run used the lightweight lexical ranker - reload the page in a "
+        "minute for full semantic matching."
+    )
 
 # --------------------------------------------------------------------------- #
 # Header metrics

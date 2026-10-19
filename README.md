@@ -2,7 +2,8 @@
 
 A mini project that reads a **resume PDF**, extracts skills with **NLP (spaCy)**,
 matches the candidate to **job postings via semantic embeddings
-(sentence-transformers)**, and recommends **specific courses** to bridge the
+(the `all-MiniLM-L6-v2` sentence model served by ONNX Runtime - no PyTorch)**,
+and recommends **specific courses** to bridge the
 missing skills — then orders them into an actionable **career path**.
 
 ## How It Works (the "10/10" architecture)
@@ -18,7 +19,7 @@ missing skills — then orders them into an actionable **career path**.
                     extracted skills + evidence
                             │
    ┌────────────────────────┴────────────────────────┐
-   │  sentence-transformers (all-MiniLM-L6-v2)       │
+   │  all-MiniLM-L6-v2 (ONNX Runtime, via fastembed) │
    │  embed(resume profile)  vs  embed(job postings) │
    │  cosine similarity = semantic fit score         │
    └────────────────────────┬────────────────────────┘
@@ -73,9 +74,12 @@ Then upload your own resume PDF in the sidebar (or click *use the sample
 resume*) to see your skill profile, top matched jobs, per-job skill gaps,
 course recommendations, and your ordered career path.
 
-> First analysis run downloads the `all-MiniLM-L6-v2` model (~90 MB) from
-> Hugging Face. If the model can't be loaded (e.g. offline), the app falls
-> back to a lightweight bag-of-words similarity so it still runs.
+> The first analysis run downloads the `all-MiniLM-L6-v2` ONNX model
+> (~90 MB) from Hugging Face, in a background thread with a bounded wait
+> (`EMBED_LOAD_TIMEOUT_S`, default 180 s). If the model isn't ready in time
+> or can't be downloaded (e.g. offline), the app falls back to a lightweight
+> bag-of-words similarity for that run so it **always** finishes instead of
+> hanging — the banner in the UI tells you which ranker was used.
 
 ## Key Design Decisions
 
@@ -85,10 +89,13 @@ course recommendations, and your ordered career path.
 | Blend semantic similarity with skill coverage | Embeddings alone over-credit keyword-adjacent resumes; coverage alone misses paraphrases. The blend is robust to both. |
 | Greedy set-cover for the career path | Maximizes gap coverage per course chosen, then orders beginner-first so prerequisites hold. |
 | Lazy-loaded model + cached analysis | Keeps Streamlit startup instant; repeated uploads with the same PDF return instantly. |
+| ONNX Runtime instead of PyTorch (`fastembed`) | Same MiniLM weights, ~140 MB less peak memory (measured: 576 MB → 439 MB for the pipeline) and no multi-GB torch install — the app fits inside Streamlit Community Cloud's small free-tier container instead of being OOM-killed mid-run. |
+| Bounded model load with lexical fallback | A stalled Hugging Face download can no longer freeze a run forever: the load runs in a background thread, the run waits at most `EMBED_LOAD_TIMEOUT_S`, then ranks lexically and says so in the UI. |
 
 ## Extending It
 
 - Add jobs/courses by appending to `data/*.json` — no code changes needed.
-- Swap the embedding model in `src/matcher.py` (`MODEL_NAME`) for a domain model.
+- Swap the embedding model in `src/matcher.py` (`EMBED_MODEL_ID`) for any
+  model in `fastembed.TextEmbedding.list_supported_models()`.
 - Add PDF OCR (e.g. `pytesseract`) in `resume_parser.py` for scanned resumes.
 - Persist user profiles (e.g. SQLite) to track progress over time.
