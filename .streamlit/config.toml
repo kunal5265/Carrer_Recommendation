@@ -1,0 +1,24 @@
+# App theme + client configuration for the AI Career Path & Skill-Gap Recommender.
+# This file is picked up by `streamlit run` locally and by Streamlit Community Cloud.
+
+[client]
+# "minimal" hides the Deploy prompt and queue/debug items from the app toolbar,
+# keeping the chrome clean for end users.
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+# Indigo-600: brand accent for links, buttons, progress, active tabs, primary badges.
+primaryColor = "#4F46E5"
+backgroundColor = "#FFFFFF"
+# Slate-50: subtle tint for the sidebar, inputs, and code/secondary surfaces.
+secondaryBackgroundColor = "#F8FAFC"
+# Slate-900: AAA contrast (~18:1) on the white background.
+textColor = "#0F172A"
+font = "sans"
+
+[server]
+headless = true
