@@ -155,7 +155,7 @@ _CSS = """
 }
 """
 
-st.markdown(_CSS, unsafe_allow_html=True)
+st.markdown(f"<style>{_CSS}</style>", unsafe_allow_html=True)
 
 # --------------------------------------------------------------------------- #
 # Full pipeline
