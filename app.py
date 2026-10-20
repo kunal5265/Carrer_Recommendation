@@ -100,15 +100,76 @@ _CSS = """
   color: #64748B;
 }
 
-/* Skill-badge pills */
-.stMarkdownBadge {
-  background: rgba(79, 70, 229, 0.15) !important;
-  color: var(--brand-primary) !important;
-  border-radius: 20px !important;
-  font-size: 0.75rem !important;
-  font-weight: 500 !important;
-  padding: 2px 8px !important;
-  margin: 2px !important;
+/* Skill-badge pills (custom class avoids Streamlit's native .stMarkdownBadge
+   rule, which forces overflow:hidden + text-overflow:ellipsis and truncates
+   long skill names inside narrow grid columns) */
+/* Pills flow in one wrapping flex row so each sizes to its own text and
+   never breaks mid-word inside a narrow column */
+.pill-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.skill-pill {
+  display: inline-block;
+  background: rgba(79, 70, 229, 0.15);
+  color: var(--brand-primary);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 11px;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* Metric cards (HTML, so long values wrap instead of being ellipsised) */
+.metric-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  padding: 14px 16px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.metric-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1.1;
+}
+
+.metric-value-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1.3;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.metric-sub {
+  font-size: 12px;
+  color: #64748B;
+  line-height: 1.35;
+  overflow-wrap: break-word;
 }
 
 /* Primary call-to-action button */
@@ -188,14 +249,11 @@ def analyze(pdf_bytes: bytes) -> dict:
 
 
 # --------------------------------------------------------------------------- #
-# App config
-# --------------------------------------------------------------------------- #
-
-st.title(" AI Career Path & Skill-Gap Recommender")  # filled in later
-
-# --------------------------------------------------------------------------- #
 # Sidebar — light gray, numbered steps, primary CTA button
 # --------------------------------------------------------------------------- #
+
+if "pdf_bytes" not in st.session_state:
+    st.session_state.pdf_bytes = None
 
 with st.sidebar:
     st.title("AI Career Advisor")
@@ -215,17 +273,46 @@ with st.sidebar:
     )
 
     st.markdown("**Upload your resume (PDF)**")
-    uploaded = st.file_uploader("Upload your resume (PDF)", type=["pdf"], label_visibility="collapsed")
+    uploaded = st.file_uploader(
+        "Upload your resume (PDF)", type=["pdf"], label_visibility="collapsed"
+    )
     st.markdown('<div class="sidebar-cta">', unsafe_allow_html=True)
-    use_sample = st.button("Or use the sample resume", type="primary", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    use_sample = st.button(
+        "Or use the sample resume", type="primary", use_container_width=True
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if st.session_state.pdf_bytes is not None and st.button("Clear resume"):
+        st.session_state.pdf_bytes = None
+        st.rerun()
+
+# --------------------------------------------------------------------------- #
+# Resolve PDF bytes — kept in session state so the analysis survives reruns
+# (a Streamlit button is only True for a single run, so without this the
+# results would disappear the moment any other widget is touched).
+# --------------------------------------------------------------------------- #
+
+try:
+    if uploaded is not None:
+        st.session_state.pdf_bytes = uploaded.read()
+    elif use_sample:
+        st.session_state.pdf_bytes = SAMPLE_PDF.read_bytes()
+except Exception as exc:
+    st.error(f"Could not read that resume: {exc}")
+    st.stop()
+
+pdf_bytes = st.session_state.pdf_bytes
 
 # --------------------------------------------------------------------------- #
 # Early exit — nothing selected yet
 # --------------------------------------------------------------------------- #
 
-if not uploaded and not use_sample:
+if pdf_bytes is None:
     st.title("AI Career Path & Skill-Gap Recommender")
+    st.caption(
+        "A resume-driven career matcher: parse → NLP skills → semantic job fit "
+        "→ skill gaps → learning path."
+    )
     st.markdown(
         "Upload a **resume PDF** in the sidebar (or click **Or use the sample resume**) to get:\n\n"
         "- Your extracted **skill profile**\n"
@@ -235,21 +322,12 @@ if not uploaded and not use_sample:
     )
     st.stop()
 
-# --------------------------------------------------------------------------- #
-# Resolve PDF bytes
-# --------------------------------------------------------------------------- #
-
 try:
-    if uploaded is not None:
-        pdf_bytes = uploaded.read()
-    else:
-        pdf_bytes = SAMPLE_PDF.read_bytes()
+    with st.spinner("Running NLP pipeline and semantic matching..."):
+        data = analyze(pdf_bytes)
 except Exception as exc:
     st.error(f"Could not analyze this resume: {exc}")
     st.stop()
-
-with st.spinner("Running NLP pipeline and semantic matching..."):
-    data = analyze(pdf_bytes)
 
 # --------------------------------------------------------------------------- #
 # Header title (filled by set_page_config + manual tweak)
@@ -265,21 +343,46 @@ top = data["results"][:3]
 c1, c2, c3, c4 = st.columns(4)
 
 with c1:
-    st.metric(
-        "**Skills extracted**",
-        len(data["skill_names"]),
+    st.markdown(
+        '<div class="metric-card">'
+        '<div class="metric-label">Skills extracted</div>'
+        f'<div class="metric-value">{len(data["skill_names"])}</div>'
+        '<div class="metric-sub">from your resume</div>'
+        '</div>',
+        unsafe_allow_html=True,
     )
 
 with c2:
-    st.metric("**Jobs analyzed**", len(data["results"]))
+    st.markdown(
+        '<div class="metric-card">'
+        '<div class="metric-label">Jobs analyzed</div>'
+        f'<div class="metric-value">{len(data["results"])}</div>'
+        '<div class="metric-sub">open roles matched</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 with c3:
-    best_title = data["results"][0]["job"]["title"][:40] + ("..." if len(data["results"][0]["job"]["title"]) > 40 else "")
-    st.metric("**Best match**", best_title)
+    best_job = data["results"][0]["job"]
+    st.markdown(
+        '<div class="metric-card">'
+        '<div class="metric-label">Best match</div>'
+        f'<div class="metric-value-text">{best_job["title"]}</div>'
+        f'<div class="metric-sub">{best_job["company"]}</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 with c4:
     best_score = data["results"][0]["score"]
-    st.metric("**Best fit score**", f"{best_score:.0%}")
+    st.markdown(
+        '<div class="metric-card">'
+        '<div class="metric-label">Best fit</div>'
+        f'<div class="metric-value">{best_score:.0%}</div>'
+        '<div class="metric-sub">50% semantic + 50% skills</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 st.divider()
 
@@ -296,12 +399,11 @@ with tab_skills:
     st.subheader(f"Extracted skills ({len(data['skill_names'])})")
 
     # 4-column grid of skill-badge pills
-    cols = st.columns(4)
-    for i, skill in enumerate(data["skills"]):
-        cols[i % 4].markdown(
-            f'<span class="stMarkdownBadge">{skill.skill}  (x{skill.count})</span>',
-            unsafe_allow_html=True,
-        )
+    pills = "".join(
+        f'<span class="skill-pill">{s.skill} &middot; x{s.count}</span>'
+        for s in data["skills"]
+    )
+    st.markdown(f'<div class="pill-wrap">{pills}</div>', unsafe_allow_html=True)
 
     with st.expander("See evidence snippets from your resume"):
         for skill in data["skills"]:
