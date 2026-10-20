@@ -168,7 +168,7 @@ st.title(" AI Career Path & Skill-Gap Recommender")  # filled in later
 # --------------------------------------------------------------------------- #
 
 with st.sidebar:
-    st.title(" AI Career Advisor")
+    st.title("AI Career Advisor")
 
     st.markdown(
         """
@@ -184,8 +184,11 @@ with st.sidebar:
         """
     )
 
-    uploaded = st.file_uploader("Upload your resume (PDF)", type=["pdf"])
-    use_sample = st.button("Or use the sample resume", type="primary")
+    st.markdown("**Upload your resume (PDF)**")
+    uploaded = st.file_uploader("Upload your resume (PDF)", type=["pdf"], label_visibility="collapsed")
+    st.markdown('<div class="sidebar-cta">', unsafe_allow_html=True)
+    use_sample = st.button("Or use the sample resume", type="primary", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # --------------------------------------------------------------------------- #
 # Early exit — nothing selected yet
@@ -232,22 +235,21 @@ top = data["results"][:3]
 c1, c2, c3, c4 = st.columns(4)
 
 with c1:
-    st.metric("Skills extracted", len(data["skill_names"]))
-    st.markdown('<span class="metric-qmark">?</span>', unsafe_allow_html=True)
+    st.metric(
+        "**Skills extracted**",
+        len(data["skill_names"]),
+    )
 
 with c2:
-    st.metric("Jobs analyzed", len(data["results"]))
-    st.markdown('<span class="metric-qmark">?</span>', unsafe_allow_html=True)
+    st.metric("**Jobs analyzed**", len(data["results"]))
 
 with c3:
     best_title = data["results"][0]["job"]["title"][:40] + ("..." if len(data["results"][0]["job"]["title"]) > 40 else "")
-    st.metric("Best match", best_title)
-    st.markdown('<span class="metric-qmark">?</span>', unsafe_allow_html=True)
+    st.metric("**Best match**", best_title)
 
 with c4:
     best_score = data["results"][0]["score"]
-    st.metric("Best fit score", f"{best_score:.0%}")
-    st.markdown('<span class="metric-qmark">?</span>', unsafe_allow_html=True)
+    st.metric("**Best fit score**", f"{best_score:.0%}")
 
 st.divider()
 
@@ -350,19 +352,7 @@ with tab_path:
         total_weeks = sum(c["duration_weeks"] for c in data["career_path"])
         st.info(f"Estimated total time: ~{total_weeks} weeks of focused study.")
 
-# --------------------------------------------------------------------------- #
-# Bottom evidence expandable row (rendered always below skills section)
-# --------------------------------------------------------------------------- #
 
-st.markdown(
-    '<div class="evidence-box">'
-    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
-    '<path d="M5 12hM19 12"/>'
-    '</svg>'
-    'See evidence snippets from your resume'
-    "</div>",
-    unsafe_allow_html=True,
-)
 
 # --------------------------------------------------------------------------- #
 # Full pipeline
