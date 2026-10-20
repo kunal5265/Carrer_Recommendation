@@ -158,6 +158,36 @@ _CSS = """
 st.markdown(_CSS, unsafe_allow_html=True)
 
 # --------------------------------------------------------------------------- #
+# Full pipeline
+# --------------------------------------------------------------------------- #
+
+@st.cache_data(show_spinner=False)
+def analyze(pdf_bytes: bytes) -> dict:
+    """Full pipeline: PDF -> text -> skills -> job matches -> career path."""
+    t0 = time.perf_counter()
+    text = extract_text_from_pdf(pdf_bytes)
+    skills = extract_skills(text)
+    skill_names = skills_as_names(skills)
+    t1 = time.perf_counter()
+    results = match_jobs(text, skill_names)
+    path = build_career_path(results)
+    t2 = time.perf_counter()
+    print(
+        f"[analyze] parse+skills {t1 - t0:.2f}s | match+path {t2 - t1:.2f}s "
+        f"| embedder={embedder_status()} | skills={len(skill_names)} "
+        f"jobs={len(results)}",
+        flush=True,
+    )
+    return {
+        "text": text,
+        "skills": skills,
+        "skill_names": skill_names,
+        "results": results,
+        "career_path": path,
+    }
+
+
+# --------------------------------------------------------------------------- #
 # App config
 # --------------------------------------------------------------------------- #
 
@@ -352,36 +382,6 @@ with tab_path:
         total_weeks = sum(c["duration_weeks"] for c in data["career_path"])
         st.info(f"Estimated total time: ~{total_weeks} weeks of focused study.")
 
-
-
-# --------------------------------------------------------------------------- #
-# Full pipeline
-# --------------------------------------------------------------------------- #
-
-@st.cache_data(show_spinner=False)
-def analyze(pdf_bytes: bytes) -> dict:
-    """Full pipeline: PDF -> text -> skills -> job matches -> career path."""
-    t0 = time.perf_counter()
-    text = extract_text_from_pdf(pdf_bytes)
-    skills = extract_skills(text)
-    skill_names = skills_as_names(skills)
-    t1 = time.perf_counter()
-    results = match_jobs(text, skill_names)
-    path = build_career_path(results)
-    t2 = time.perf_counter()
-    print(
-        f"[analyze] parse+skills {t1 - t0:.2f}s | match+path {t2 - t1:.2f}s "
-        f"| embedder={embedder_status()} | skills={len(skill_names)} "
-        f"jobs={len(results)}",
-        flush=True,
-    )
-    return {
-        "text": text,
-        "skills": skills,
-        "skill_names": skill_names,
-        "results": results,
-        "career_path": path,
-    }
 
 
 # --------------------------------------------------------------------------- #
